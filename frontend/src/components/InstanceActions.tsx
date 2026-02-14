@@ -11,7 +11,7 @@ export interface InstanceActionsProps {
   onStatusChange?: () => void;
 }
 
-type ActionType = "start" | "stop" | "delete" | null;
+type ActionType = "start" | "stop" | "delete" | "update" | null;
 
 type ErrorResponse = {
   error?: unknown;
@@ -138,6 +138,18 @@ export function InstanceActions({
     });
   };
 
+  const handleUpdate = async (event: MouseEvent<HTMLButtonElement>) => {
+    swallowClick(event);
+    await runAction({
+      action: "update",
+      request: () =>
+        fetch(`/api/instances/${encodedId}/update`, {
+          method: "POST",
+        }),
+      fallbackMessage: "Failed to update instance. Please try again.",
+    });
+  };
+
   const handleDelete = (event: MouseEvent<HTMLButtonElement>) => {
     swallowClick(event);
     setErrorMessage("");
@@ -180,6 +192,17 @@ export function InstanceActions({
           isLoading={activeAction === "stop"}
         >
           Stop
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={handleUpdate}
+          disabled={isMutating || normalizedStatus !== "running"}
+          isLoading={activeAction === "update"}
+        >
+          Update
         </Button>
 
         <Button
