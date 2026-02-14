@@ -71,9 +71,8 @@ export function WebTerminal({ instanceId, userId, onClose }: WebTerminalProps) {
 
     // Connect WebSocket
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsHost = window.location.hostname;
-    const wsPort = 3001; // Terminal server port
-    const wsUrl = `${protocol}//${wsHost}:${wsPort}/ws/terminal/${instanceId}?token=${encodeURIComponent(userId)}`;
+    // Use same-origin websocket endpoint proxied by Nginx
+    const wsUrl = `${protocol}//${window.location.host}/ws/terminal/${instanceId}?token=${encodeURIComponent(userId)}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
