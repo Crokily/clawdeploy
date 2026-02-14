@@ -21,7 +21,7 @@
         "Script committed to the repo"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "No frontend code changes. The OpenClaw Dockerfile uses node:22-bookworm base, requires pnpm and bun. Build may take 5-10 minutes. 34GB free disk should be sufficient."
     },
     {
@@ -40,7 +40,7 @@
         "Build passes: cd frontend && npm run build"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Config structure derived from OpenClaw source: agents.defaults.workspace=/home/node/.openclaw/workspace, gateway config, optional channel tokens. Directories must be writable by UID 1000 (node user in container)."
     },
     {
@@ -62,7 +62,7 @@
         "Build passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-001 (image) and US-002 (storage). The dist/index.js path matches docker-compose.yml from OpenClaw repo. User 'node' (UID 1000) is the default in the OpenClaw image."
     },
     {
@@ -82,7 +82,7 @@
         "Build passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-002, US-003. The channel field is now optional with empty string meaning 'skip'. This is the central orchestration story."
     },
     {
@@ -100,7 +100,7 @@
         "Script committed (without secrets)"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "No frontend changes. User must: (1) create Cloudflare API token with Zone:DNS:Edit for a2a.ing, (2) add DNS A records for claw and *.claw pointing to server IP with proxy OFF. The script reads CLOUDFLARE_API_TOKEN from env."
     },
     {
@@ -123,7 +123,7 @@
         "Build passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-005. The map file format: map $instance_id $clawdeploy_port { default 0; \"id1\" 12345; }. The updateNginxPortMap function queries the database for all running instances and regenerates the file. Returns 502 for unknown instance IDs."
     },
     {
@@ -141,8 +141,8 @@
         "Build passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "Keep the form clean. Skip defaults make zero-config creation possible. Helper text for bot tokens: Telegram → 'Chat with @BotFather on Telegram', Discord → 'Discord Developer Portal → Bot → Reset Token'."
+      "passes": true,
+      "notes": "Keep the form clean. Skip defaults make zero-config creation possible. Helper text for bot tokens: Telegram \u2192 'Chat with @BotFather on Telegram', Discord \u2192 'Discord Developer Portal \u2192 Bot \u2192 Reset Token'."
     },
     {
       "id": "US-008",
@@ -159,20 +159,20 @@
         "Build passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "The gatewayToken was previously redacted. Now return it only to the owning user. Add a URL-based quick-login hint: users can append ?token=xxx to auto-authenticate in the OpenClaw Dashboard."
     },
     {
       "id": "US-009",
-      "title": "Web Terminal Backend — Container Exec WebSocket Server",
+      "title": "Web Terminal Backend \u2014 Container Exec WebSocket Server",
       "description": "As a developer, I need a WebSocket server that streams a container shell to the browser for web terminal functionality.",
       "acceptanceCriteria": [
-        "New file frontend/src/terminal-server.ts created — standalone Express+ws server on port 3001",
+        "New file frontend/src/terminal-server.ts created \u2014 standalone Express+ws server on port 3001",
         "WebSocket endpoint: /ws/terminal/{instanceId}",
         "Authenticates via query param token (matches Clerk session token, verified server-side)",
         "Verifies instance ownership by querying the database",
         "Uses dockerode container.exec() to start bash (fallback sh) with TTY",
-        "Bidirectional streaming: WS messages → exec stdin, exec stdout → WS messages",
+        "Bidirectional streaming: WS messages \u2192 exec stdin, exec stdout \u2192 WS messages",
         "Handles resize messages: JSON {type: 'resize', cols: number, rows: number}",
         "Cleanup on disconnect: kills exec process",
         "Only instance owner can connect",
@@ -181,12 +181,12 @@
         "Build passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Separate from Next.js because App Router doesn't support raw WebSocket upgrades. This is a small ~100-line server. In production, run it alongside Next.js via PM2 or systemd. Use ws npm package."
     },
     {
       "id": "US-010",
-      "title": "Web Terminal Frontend — xterm.js Integration",
+      "title": "Web Terminal Frontend \u2014 xterm.js Integration",
       "description": "As a user, I want a web terminal on the instance detail page to run CLI commands inside my container.",
       "acceptanceCriteria": [
         "@xterm/xterm and @xterm/addon-fit packages installed",
@@ -201,7 +201,7 @@
         "Build passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "xterm.js is browser-only. Must use dynamic import. The terminal gives full CLI access for openclaw onboard, openclaw configure, openclaw channels add, etc."
     },
     {
@@ -210,7 +210,7 @@
       "description": "As a user, I want an Update button to update OpenClaw to the latest version.",
       "acceptanceCriteria": [
         "New API endpoint POST /api/instances/[id]/update created",
-        "Flow: stop container → remove container → git pull + docker build (if needed) → recreate container with same config/volumes/port → start",
+        "Flow: stop container \u2192 remove container \u2192 git pull + docker build (if needed) \u2192 recreate container with same config/volumes/port \u2192 start",
         "Update button on instance detail page",
         "Button shows loading state during update",
         "Instance status changes to updating during process",
@@ -220,7 +220,7 @@
         "Build passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Image rebuild is shared across all instances. Use a simple lock file to prevent concurrent rebuilds. After rebuild, only the requesting instance's container is recreated."
     },
     {
@@ -241,7 +241,7 @@
         "Build passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Integration and bug-fix story. Test with real Telegram/Discord bot tokens if available. Fix volume permissions, startup timing, WebSocket proxying, or any issues found."
     }
   ]
