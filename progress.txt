@@ -77,3 +77,14 @@ Started: 2026-02-14
   - All use POST except logs which uses GET
   - RouteContext type: { params: Promise<{ id: string }> }
 ---
+
+## 2026-02-14 08:15 - US-007: Create Instance Creation Page (/dashboard/new)
+- Created frontend/src/app/dashboard/new/page.tsx
+- Client component with form: name, model, channel, botToken, apiKey
+- Uses existing UI components (Input, Select, Button, Card)
+- Client-side validation, POST to /api/instances, redirect on success
+- **Learnings for future iterations:**
+  - Client components need 'use client' directive
+  - useUser() from @clerk/nextjs for client-side auth
+  - useRouter() from next/navigation for programmatic navigation
+---

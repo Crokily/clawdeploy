@@ -129,7 +129,7 @@
         "Build passes: cd frontend && npm run build"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-002 (API must accept new fields). This is a client component ('use client') since it has form state and event handlers. Use existing UI components: Input, Select, Button, Card from @/components/ui."
     },
     {
