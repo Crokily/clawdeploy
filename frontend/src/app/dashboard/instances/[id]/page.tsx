@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InstanceActions } from "@/components/InstanceActions";
+import { WebTerminal } from "@/components/WebTerminalLoader";
 import { DashboardLayout } from "@/components/layout";
 import { Badge, Button, Card, LoadingSpinner } from "@/components/ui";
 
@@ -115,6 +116,7 @@ export default function InstanceDetailPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
 
   const dashboardUrl = instance
     ? `https://${instance.id}.claw.a2a.ing`
@@ -460,6 +462,48 @@ export default function InstanceDetailPage() {
                 </div>
               </div>
             </Card>
+
+            {/* Web Terminal */}
+            {isRunning ? (
+              <Card
+                title="Web Terminal"
+                description="Access your instance CLI directly in the browser"
+                variant="elevated"
+              >
+                {showTerminal ? (
+                  <div style={{ height: "400px" }}>
+                    <WebTerminal
+                      instanceId={instance.id}
+                      userId={instance.id} // Simplified for MVP — actual auth via Clerk
+                      onClose={() => setShowTerminal(false)}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 py-6">
+                    <p className="text-sm text-secondary-600">
+                      Open a terminal to run commands like{" "}
+                      <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
+                        openclaw configure
+                      </code>
+                      ,{" "}
+                      <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
+                        openclaw channels add
+                      </code>
+                      , or{" "}
+                      <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
+                        openclaw doctor
+                      </code>
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setShowTerminal(true)}
+                    >
+                      🖥️ Open Terminal
+                    </Button>
+                  </div>
+                )}
+              </Card>
+            ) : null}
 
             <Card title="Container Logs" variant="elevated">
               {hasLogs ? (
