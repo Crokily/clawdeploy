@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { mkdir, rm, writeFile } from "fs/promises";
+import { chmod, mkdir, rm, writeFile } from "fs/promises";
 import path from "path";
 
 const DATA_ROOT = "/data/clawdeploy";
@@ -60,17 +60,21 @@ export function getInstancePaths(instanceId: string) {
 
 /**
  * Create persistent storage directories for an instance.
- * Directories are owned by UID 1000 (node user in container).
+ *
+ * Note: the app runs as non-root (ubuntu), so we cannot chown to uid 1000 here.
+ * We use permissive filesystem permissions so the container user (node/uid 1000)
+ * can read/write mounted volumes.
  */
 export async function createInstanceStorage(instanceId: string): Promise<void> {
   const paths = getInstancePaths(instanceId);
 
-  await mkdir(paths.config, { recursive: true, mode: 0o755 });
-  await mkdir(paths.workspace, { recursive: true, mode: 0o755 });
+  await mkdir(paths.config, { recursive: true, mode: 0o777 });
+  await mkdir(paths.workspace, { recursive: true, mode: 0o777 });
 
-  // Ensure directories are writable by container's node user (UID 1000)
-  const { execSync } = await import("child_process");
-  execSync(`chown -R 1000:1000 ${paths.base}`);
+  // Ensure container user can write regardless of host uid
+  await chmod(paths.base, 0o777);
+  await chmod(paths.config, 0o777);
+  await chmod(paths.workspace, 0o777);
 }
 
 /**
@@ -160,15 +164,19 @@ export async function writeInstanceConfig(
 ): Promise<void> {
   const paths = getInstancePaths(instanceId);
 
-  await writeFile(paths.configFile, JSON.stringify(config, null, 2), "utf-8");
+  await writeFile(paths.configFile, JSON.stringify(config, null, 2), {
+    encoding: "utf-8",
+    mode: 0o666,
+  });
+  await chmod(paths.configFile, 0o666);
 
   if (envContent.trim().length > 0) {
-    await writeFile(paths.envFile, envContent, "utf-8");
+    await writeFile(paths.envFile, envContent, {
+      encoding: "utf-8",
+      mode: 0o666,
+    });
+    await chmod(paths.envFile, 0o666);
   }
-
-  // Ensure files are owned by container user
-  const { execSync } = await import("child_process");
-  execSync(`chown -R 1000:1000 ${paths.base}`);
 }
 
 /**
