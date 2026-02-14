@@ -9,8 +9,17 @@ import {
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ClawDeploy - One-Click OpenClaw Deployment",
-  description: "Deploy your personal AI assistant in under 60 seconds",
+  title: {
+    default: "ClawDeploy — One-Click OpenClaw Deployment",
+    template: "%s | ClawDeploy",
+  },
+  description:
+    "Deploy your own OpenClaw AI assistant instance in under a minute. No Docker or server knowledge required.",
+  openGraph: {
+    title: "ClawDeploy — One-Click OpenClaw Deployment",
+    description: "Deploy your own OpenClaw AI assistant instance in under a minute.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
