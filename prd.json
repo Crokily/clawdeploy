@@ -40,7 +40,7 @@
         "Build passes: cd frontend && npm run build"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-001. Update frontend/src/lib/instance-schema.ts and both route files. Keep the existing auth middleware and error handling patterns."
     },
     {

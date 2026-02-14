@@ -27,3 +27,12 @@ Started: 2026-02-14
   - Prisma generate updates the client types automatically
   - Json fields need @default("{}") not @default({})
 ---
+
+## 2026-02-14 07:50 - US-002: Update Zod Validation Schemas and CRUD API Routes
+- Updated instance-schema.ts with model/channel enums, new optional fields
+- Updated POST route to write all new fields
+- Updated PATCH route with JSON null normalization for Prisma
+- **Learnings for future iterations:**
+  - z.json() from zod v4 for JSON fields, need Prisma.JsonNull normalization
+  - createInstanceSchema uses z.enum() for model and channel
+---
