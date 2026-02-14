@@ -2,7 +2,8 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { InstanceActions } from "@/components/InstanceActions";
 import { DashboardLayout } from "@/components/layout";
 import { Badge, Button, Card, LoadingSpinner } from "@/components/ui";
 
@@ -107,20 +108,12 @@ export default function InstanceDetailPage() {
   const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.replace("/");
-    }
-  }, [isLoaded, isSignedIn, router]);
+  const loadInstanceDetails = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isLoaded || !isSignedIn) {
+        return;
+      }
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    const loadInstanceDetails = async () => {
       setIsFetching(true);
       setErrorMessage("");
       setIsNotFound(false);
@@ -128,7 +121,7 @@ export default function InstanceDetailPage() {
       setLogs("");
 
       if (!instanceId) {
-        if (!isCancelled) {
+        if (!signal?.aborted) {
           setIsNotFound(true);
           setIsFetching(false);
         }
@@ -140,12 +133,15 @@ export default function InstanceDetailPage() {
       try {
         const instanceResponse = await fetch(`/api/instances/${encodedId}`, {
           cache: "no-store",
+          signal,
         });
 
+        if (signal?.aborted) {
+          return;
+        }
+
         if (instanceResponse.status === 404) {
-          if (!isCancelled) {
-            setIsNotFound(true);
-          }
+          setIsNotFound(true);
           return;
         }
 
@@ -161,19 +157,22 @@ export default function InstanceDetailPage() {
           throw new Error("Failed to load instance details. Please try again.");
         }
 
-        if (!isCancelled) {
+        if (!signal?.aborted) {
           setInstance(instanceResult.instance);
         }
 
         const logsResponse = await fetch(`/api/instances/${encodedId}/logs`, {
           cache: "no-store",
+          signal,
         });
 
+        if (signal?.aborted) {
+          return;
+        }
+
         if (logsResponse.status === 404) {
-          if (!isCancelled) {
-            setIsNotFound(true);
-            setInstance(null);
-          }
+          setIsNotFound(true);
+          setInstance(null);
           return;
         }
 
@@ -181,9 +180,7 @@ export default function InstanceDetailPage() {
           const message = await readErrorMessage(logsResponse);
 
           if (logsResponse.status === 400 && message === "Instance has no container") {
-            if (!isCancelled) {
-              setLogs("");
-            }
+            setLogs("");
             return;
           }
 
@@ -193,30 +190,52 @@ export default function InstanceDetailPage() {
         }
 
         const logsResult = (await logsResponse.json()) as LogsResponse;
-        if (!isCancelled) {
-          setLogs(typeof logsResult.logs === "string" ? logsResult.logs : "");
-        }
+        setLogs(typeof logsResult.logs === "string" ? logsResult.logs : "");
       } catch (error: unknown) {
-        if (!isCancelled) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Failed to load instance details. Please try again.",
-          );
+        if (signal?.aborted) {
+          return;
         }
+
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Failed to load instance details. Please try again.",
+        );
       } finally {
-        if (!isCancelled) {
+        if (!signal?.aborted) {
           setIsFetching(false);
         }
       }
-    };
+    },
+    [instanceId, isLoaded, isSignedIn],
+  );
 
-    void loadInstanceDetails();
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.replace("/");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      return;
+    }
+
+    const controller = new AbortController();
+    void loadInstanceDetails(controller.signal);
 
     return () => {
-      isCancelled = true;
+      controller.abort();
     };
-  }, [instanceId, isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, loadInstanceDetails]);
+
+  const handleStatusChange = useCallback(() => {
+    void loadInstanceDetails();
+  }, [loadInstanceDetails]);
 
   if (!isLoaded) {
     return (
@@ -339,6 +358,20 @@ export default function InstanceDetailPage() {
                     </dd>
                   </div>
                 </dl>
+
+                <div className="rounded-xl border border-secondary-200 bg-secondary-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
+                    Actions
+                  </p>
+                  <div className="mt-3">
+                    <InstanceActions
+                      instanceId={instance.id}
+                      status={instance.status}
+                      containerId={instance.containerId}
+                      onStatusChange={handleStatusChange}
+                    />
+                  </div>
+                </div>
               </div>
             </Card>
 

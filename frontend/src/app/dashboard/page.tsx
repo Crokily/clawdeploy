@@ -3,7 +3,8 @@
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { InstanceActions } from "@/components/InstanceActions";
 import { DashboardLayout } from "@/components/layout";
 import { Badge, Button, Card, EmptyState, LoadingSpinner } from "@/components/ui";
 
@@ -13,6 +14,7 @@ type Instance = {
   model: string;
   channel: string;
   status: string;
+  containerId: string | null;
   createdAt: string;
 };
 
@@ -23,6 +25,20 @@ type ListInstancesResponse = {
 type ErrorResponse = {
   error?: unknown;
 };
+
+async function readErrorMessage(response: Response): Promise<string | null> {
+  try {
+    const error = (await response.json()) as ErrorResponse;
+
+    if (typeof error.error === "string" && error.error.trim()) {
+      return error.error;
+    }
+  } catch {
+    // Use the default error message when the response is not JSON.
+  }
+
+  return null;
+}
 
 function getStatusVariant(
   status: string,
@@ -103,6 +119,48 @@ export default function DashboardPage() {
   const [isFetchingInstances, setIsFetchingInstances] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const loadInstances = useCallback(async (signal?: AbortSignal) => {
+    setIsFetchingInstances(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/instances", {
+        cache: "no-store",
+        signal,
+      });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response);
+        throw new Error(message ?? "Failed to load instances. Please try again.");
+      }
+
+      const result = (await response.json()) as ListInstancesResponse;
+
+      if (!signal?.aborted) {
+        setInstances(Array.isArray(result.instances) ? result.instances : []);
+      }
+    } catch (error: unknown) {
+      if (signal?.aborted) {
+        return;
+      }
+
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to load instances. Please try again.",
+      );
+      setInstances([]);
+    } finally {
+      if (!signal?.aborted) {
+        setIsFetchingInstances(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       router.replace("/");
@@ -114,59 +172,17 @@ export default function DashboardPage() {
       return;
     }
 
-    let isCancelled = false;
-
-    const loadInstances = async () => {
-      setIsFetchingInstances(true);
-      setErrorMessage("");
-
-      try {
-        const response = await fetch("/api/instances", {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          let message = "Failed to load instances. Please try again.";
-
-          try {
-            const error = (await response.json()) as ErrorResponse;
-            if (typeof error.error === "string" && error.error.trim()) {
-              message = error.error;
-            }
-          } catch {
-            // Use the default error message when the response is not JSON.
-          }
-
-          throw new Error(message);
-        }
-
-        const result = (await response.json()) as ListInstancesResponse;
-
-        if (!isCancelled) {
-          setInstances(Array.isArray(result.instances) ? result.instances : []);
-        }
-      } catch (error: unknown) {
-        if (!isCancelled) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Failed to load instances. Please try again.",
-          );
-          setInstances([]);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsFetchingInstances(false);
-        }
-      }
-    };
-
-    void loadInstances();
+    const controller = new AbortController();
+    void loadInstances(controller.signal);
 
     return () => {
-      isCancelled = true;
+      controller.abort();
     };
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, loadInstances]);
+
+  const handleStatusChange = useCallback(() => {
+    void loadInstances();
+  }, [loadInstances]);
 
   if (!isLoaded) {
     return (
@@ -256,31 +272,40 @@ export default function DashboardPage() {
         {!isFetchingInstances && !errorMessage && instances.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
             {instances.map((instance) => (
-              <Link
+              <Card
                 key={instance.id}
-                href={`/dashboard/instances/${instance.id}`}
-                className="block"
+                title={instance.name}
+                description={`${instance.model} · ${instance.channel}`}
+                variant="elevated"
+                className="h-full"
               >
-                <Card
-                  title={instance.name}
-                  description={`${instance.model} · ${instance.channel}`}
-                  variant="elevated"
-                  className="h-full cursor-pointer"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <Badge variant={getStatusVariant(instance.status)}>
-                      {formatStatus(instance.status)}
-                    </Badge>
-                    <p className="text-xs text-secondary-500">
-                      Created{" "}
-                      {formatCreatedAt(
-                        instance.createdAt,
-                        createdAtFormatter,
-                      )}
-                    </p>
-                  </div>
-                </Card>
-              </Link>
+                <div className="space-y-4">
+                  <Link
+                    href={`/dashboard/instances/${instance.id}`}
+                    className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <Badge variant={getStatusVariant(instance.status)}>
+                        {formatStatus(instance.status)}
+                      </Badge>
+                      <p className="text-xs text-secondary-500">
+                        Created{" "}
+                        {formatCreatedAt(
+                          instance.createdAt,
+                          createdAtFormatter,
+                        )}
+                      </p>
+                    </div>
+                  </Link>
+
+                  <InstanceActions
+                    instanceId={instance.id}
+                    status={instance.status}
+                    containerId={instance.containerId}
+                    onStatusChange={handleStatusChange}
+                  />
+                </div>
+              </Card>
             ))}
           </div>
         ) : null}
