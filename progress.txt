@@ -47,3 +47,14 @@ Started: 2026-02-14
   - Need `sg docker -c "command"` or new shell for group to take effect
   - Docker images available: nginx:alpine, hello-world
 ---
+
+## 2026-02-14 08:00 - US-004: Create Docker Service Module
+- Created frontend/src/lib/docker.ts with dockerode wrapper
+- Functions: createContainer, startContainer, stopContainer, removeContainer, getContainerStatus, getContainerLogs, pingDocker
+- Uses nginx:alpine, port range 10000-20000, CPU/memory limits
+- **Learnings for future iterations:**
+  - Docker module at frontend/src/lib/docker.ts
+  - import { createContainer, startContainer, ... } from "@/lib/docker"
+  - Container names: clawdeploy-{instanceId}
+  - Labels: clawdeploy=true, instanceId=X
+---

@@ -74,7 +74,7 @@
         "Build passes: cd frontend && npm run build"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-003 (Docker must be installed). The module connects to the local Docker socket at /var/run/docker.sock. Pull nginx:alpine image first if not present."
     },
     {
