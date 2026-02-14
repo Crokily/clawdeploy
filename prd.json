@@ -109,7 +109,7 @@
         "Build passes: cd frontend && npm run build"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-004 and US-005. Create three new route files: frontend/src/app/api/instances/[id]/start/route.ts, stop/route.ts, logs/route.ts. Follow the same auth pattern as existing [id]/route.ts."
     },
     {

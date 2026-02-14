@@ -67,3 +67,13 @@ Started: 2026-02-14
   - next.config.ts needs serverExternalPackages for dockerode to work in API routes
   - Docker operations wrapped in try/catch so DB ops continue even if Docker fails
 ---
+
+## 2026-02-14 08:10 - US-006: Add Container Action API Endpoints (Start / Stop / Logs)
+- Created start/route.ts, stop/route.ts, logs/route.ts under api/instances/[id]/
+- All follow existing auth/validation patterns
+- Logs endpoint supports ?tail=N query param
+- **Learnings for future iterations:**
+  - API routes at: /api/instances/[id]/start, /api/instances/[id]/stop, /api/instances/[id]/logs
+  - All use POST except logs which uses GET
+  - RouteContext type: { params: Promise<{ id: string }> }
+---
