@@ -111,6 +111,9 @@ export default function InstanceDetailPage() {
 
   const [instance, setInstance] = useState<Instance | null>(null);
   const [logs, setLogs] = useState("");
+  const [logsMessage, setLogsMessage] = useState(
+    "Logs will appear here once the container starts.",
+  );
   const [isFetching, setIsFetching] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -133,6 +136,7 @@ export default function InstanceDetailPage() {
       setIsNotFound(false);
       setInstance(null);
       setLogs("");
+      setLogsMessage("Logs will appear here once the container starts.");
 
       if (!instanceId) {
         if (!signal?.aborted) {
@@ -166,16 +170,26 @@ export default function InstanceDetailPage() {
           );
         }
 
-        const instanceResult =
-          (await instanceResponse.json()) as InstanceResponse;
+        const instanceResult = (await instanceResponse.json()) as InstanceResponse;
         if (!instanceResult.instance) {
           throw new Error(
             "Failed to load instance details. Please try again.",
           );
         }
 
+        const currentInstance = instanceResult.instance;
         if (!signal?.aborted) {
-          setInstance(instanceResult.instance);
+          setInstance(currentInstance);
+        }
+
+        if (!currentInstance.containerId) {
+          if (!signal?.aborted) {
+            setLogs("");
+            setLogsMessage(
+              "No container yet. Start the instance, then refresh to view logs.",
+            );
+          }
+          return;
         }
 
         const logsResponse = await fetch(
@@ -191,8 +205,8 @@ export default function InstanceDetailPage() {
         }
 
         if (logsResponse.status === 404) {
-          setIsNotFound(true);
-          setInstance(null);
+          setLogs("");
+          setLogsMessage("Logs are not available yet.");
           return;
         }
 
@@ -204,16 +218,27 @@ export default function InstanceDetailPage() {
             message === "Instance has no container"
           ) {
             setLogs("");
+            setLogsMessage(
+              "No container yet. Start the instance, then refresh to view logs.",
+            );
             return;
           }
 
-          throw new Error(
-            message ?? "Failed to load container logs. Please try again.",
+          setLogs("");
+          setLogsMessage(
+            "Could not load logs right now. Try again after the container is running.",
           );
+          return;
         }
 
         const logsResult = (await logsResponse.json()) as LogsResponse;
-        setLogs(typeof logsResult.logs === "string" ? logsResult.logs : "");
+        const nextLogs = typeof logsResult.logs === "string" ? logsResult.logs : "";
+        setLogs(nextLogs);
+        setLogsMessage(
+          nextLogs.trim().length > 0
+            ? ""
+            : "No logs yet. Run onboarding commands in Web Terminal to initialize the instance.",
+        );
       } catch (error: unknown) {
         if (signal?.aborted) {
           return;
@@ -463,47 +488,45 @@ export default function InstanceDetailPage() {
               </div>
             </Card>
 
-            {/* Web Terminal */}
-            {isRunning ? (
-              <Card
-                title="Web Terminal"
-                description="Access your instance CLI directly in the browser"
-                variant="elevated"
-              >
-                {showTerminal ? (
-                  <div style={{ height: "400px" }}>
-                    <WebTerminal
-                      instanceId={instance.id}
-                      userId={instance.id} // Simplified for MVP — actual auth via Clerk
-                      onClose={() => setShowTerminal(false)}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 py-6">
-                    <p className="text-sm text-secondary-600">
-                      Open a terminal to run commands like{" "}
-                      <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
-                        openclaw configure
-                      </code>
-                      ,{" "}
-                      <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
-                        openclaw channels add
-                      </code>
-                      , or{" "}
-                      <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
-                        openclaw doctor
-                      </code>
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={() => setShowTerminal(true)}
-                    >
-                      🖥️ Open Terminal
+            <Card
+              title="Terminal-First Onboarding"
+              description="Open Web Terminal and run setup commands to complete first-time configuration."
+              variant="elevated"
+            >
+              <div className="space-y-4">
+                <p className="text-sm text-secondary-700">
+                  Run{" "}
+                  <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
+                    openclaw onboard
+                  </code>{" "}
+                  and then{" "}
+                  <code className="rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-xs">
+                    openclaw doctor --fix
+                  </code>{" "}
+                  in the Web Terminal.
+                </p>
+
+                {isRunning ? (
+                  showTerminal ? (
+                    <div style={{ height: "400px" }}>
+                      <WebTerminal
+                        instanceId={instance.id}
+                        userId={instance.id} // Simplified for MVP — actual auth via Clerk
+                        onClose={() => setShowTerminal(false)}
+                      />
+                    </div>
+                  ) : (
+                    <Button type="button" onClick={() => setShowTerminal(true)}>
+                      Open Web Terminal
                     </Button>
-                  </div>
+                  )
+                ) : (
+                  <p className="text-xs text-secondary-500">
+                    Terminal access becomes available once the container is running.
+                  </p>
                 )}
-              </Card>
-            ) : null}
+              </div>
+            </Card>
 
             <Card title="Container Logs" variant="elevated">
               {hasLogs ? (
@@ -512,7 +535,7 @@ export default function InstanceDetailPage() {
                 </pre>
               ) : (
                 <p className="text-sm text-secondary-600">
-                  No logs available
+                  {logsMessage}
                 </p>
               )}
             </Card>

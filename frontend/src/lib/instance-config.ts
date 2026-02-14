@@ -31,10 +31,16 @@ export interface OpenClawConfig {
       mode: string;
     };
   };
-  wizard?: {
-    completed: boolean;
+  channels?: {
+    telegram?: {
+      enabled: boolean;
+      botToken: string;
+    };
+    discord?: {
+      enabled: boolean;
+      token: string;
+    };
   };
-  channels?: Record<string, unknown>;
 }
 
 /**
@@ -98,9 +104,6 @@ export function generateOpenClawConfig(params: OpenClawConfigParams): OpenClawCo
       tailscale: {
         mode: "off",
       },
-    },
-    wizard: {
-      completed: true,
     },
   };
 

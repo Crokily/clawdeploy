@@ -16,12 +16,10 @@ type CreateInstanceFormState = {
   model: string;
   channel: string;
   botToken: string;
-  aiProvider: string;
-  apiKey: string;
 };
 
 type FieldErrors = Partial<
-  Record<"name" | "model" | "channel" | "botToken" | "apiKey", string>
+  Record<"name" | "model" | "channel" | "botToken", string>
 >;
 
 const modelOptions = [
@@ -36,21 +34,11 @@ const channelOptions = [
   { value: "discord", label: "Discord" },
 ];
 
-const aiProviderOptions = [
-  { value: "", label: "Skip — configure later" },
-  { value: "anthropic", label: "Anthropic (Claude)" },
-  { value: "openai", label: "OpenAI (GPT)" },
-  { value: "gemini", label: "Google (Gemini)" },
-  { value: "openrouter", label: "OpenRouter" },
-];
-
 const initialFormState: CreateInstanceFormState = {
   name: "",
   model: "claude-opus-4.5",
   channel: "",
   botToken: "",
-  aiProvider: "",
-  apiKey: "",
 };
 
 function validateForm(values: CreateInstanceFormState): FieldErrors {
@@ -62,10 +50,6 @@ function validateForm(values: CreateInstanceFormState): FieldErrors {
 
   if (values.channel && !values.botToken.trim()) {
     nextErrors.botToken = "Bot token is required when a channel is selected";
-  }
-
-  if (values.aiProvider && !values.apiKey.trim()) {
-    nextErrors.apiKey = "API key is required when a provider is selected";
   }
 
   return nextErrors;
@@ -121,9 +105,7 @@ export default function NewInstancePage() {
           name: formValues.name.trim(),
           model: formValues.model,
           channel: formValues.channel || undefined,
-          botToken: formValues.botToken || undefined,
-          aiProvider: formValues.aiProvider || undefined,
-          apiKey: formValues.apiKey || undefined,
+          botToken: formValues.channel ? formValues.botToken || undefined : undefined,
         }),
       });
 
@@ -182,7 +164,7 @@ export default function NewInstancePage() {
     <DashboardLayout>
       <Card
         title="Create New Instance"
-        description="Configure your OpenClaw instance and deploy it in one click."
+        description="Pick a name, model, and optional channel. Finish onboarding in the Web Terminal."
         variant="elevated"
       >
         <form className="space-y-6" onSubmit={handleSubmit} noValidate>
@@ -250,41 +232,6 @@ export default function NewInstancePage() {
                     : "Get your token from Discord Developer Portal → Bot → Reset Token"}
                 </p>
               </div>
-            ) : null}
-          </div>
-
-          {/* AI Provider Config */}
-          <div className="space-y-3">
-            <div className="border-t border-secondary-200 pt-4">
-              <h3 className="text-sm font-medium text-secondary-900">
-                AI Provider
-              </h3>
-              <p className="mt-1 text-xs text-secondary-500">
-                Provide an API key for your AI provider. You can also configure
-                this later via the Web Terminal.
-              </p>
-            </div>
-
-            <Select
-              label="Provider"
-              name="aiProvider"
-              value={formValues.aiProvider}
-              onChange={handleFieldChange}
-              options={aiProviderOptions}
-            />
-
-            {formValues.aiProvider ? (
-              <Input
-                label="API Key"
-                name="apiKey"
-                type="password"
-                value={formValues.apiKey}
-                onChange={handleFieldChange}
-                error={fieldErrors.apiKey}
-                placeholder="sk-..."
-                autoComplete="off"
-                required
-              />
             ) : null}
           </div>
 
