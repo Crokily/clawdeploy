@@ -56,7 +56,7 @@
         "Script committed to the repo"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Docker is NOT currently installed on the server. This story has no frontend code changes so typecheck/build are not required. Run the script after creating it to actually install Docker."
     },
     {

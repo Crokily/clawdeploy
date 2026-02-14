@@ -36,3 +36,14 @@ Started: 2026-02-14
   - z.json() from zod v4 for JSON fields, need Prisma.JsonNull normalization
   - createInstanceSchema uses z.enum() for model and channel
 ---
+
+## 2026-02-14 07:55 - US-003: Install Docker Engine on the Server
+- Created scripts/install-docker.sh (idempotent Docker installer)
+- Docker Engine 29.2.1 installed via official apt repo
+- ubuntu user added to docker group
+- nginx:alpine image pulled
+- **Learnings for future iterations:**
+  - Docker socket at /var/run/docker.sock
+  - Need `sg docker -c "command"` or new shell for group to take effect
+  - Docker images available: nginx:alpine, hello-world
+---
