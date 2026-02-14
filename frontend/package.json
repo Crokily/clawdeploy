@@ -13,6 +13,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.37.3",
     "@prisma/client": "^6.19.2",
+    "dockerode": "^4.0.9",
     "next": "16.1.6",
     "pino": "^10.3.0",
     "react": "19.2.3",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/dockerode": "^4.0.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
