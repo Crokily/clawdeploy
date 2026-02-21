@@ -25,3 +25,12 @@
   - Prisma generate needs DATABASE_URL in env or it skips — postinstall handles this
   - ESM requires .js extensions in all relative imports
 ---
+## 2026-02-21 14:02 UTC - US-003: Observability Foundation
+- Created 6 files in src/observability/ following pi-agent-app-dev Patterns 1-4
+- processEvent(event) pattern used across all modules for agentLoop integration
+- Trace output to /var/log/pideploy/traces/
+- **Learnings for future iterations:**
+  - processEvent() pattern works well — all modules share same interface
+  - agent_start event may not have all fields — use optional chaining
+  - Cost tracking depends on usage.cost.total being present in message events
+---

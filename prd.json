@@ -62,7 +62,7 @@
         "npx tsc --noEmit passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "These are pure utility modules with no external runtime dependencies beyond pi-ai types. They subscribe to AgentSession/AgentLoop events. Reference: pi-agent-app-dev/references/observability.md Patterns 1-4. Use crypto.randomUUID() for trace/span IDs. mkdir -p /var/log/pideploy/traces/ as part of setup."
     },
     {
