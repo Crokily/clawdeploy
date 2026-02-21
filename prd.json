@@ -177,7 +177,7 @@
         "npx tsc --noEmit passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Use a separate retry counter stored in-memory (Map<instanceId, failCount>). Reset on successful start. Heartbeat prompt is intentionally simple and short to minimize token usage. Uses the same agentLoop but with HEARTBEAT_PROMPT."
     },
     {

@@ -16,3 +16,11 @@ export {
   type TranscriptCapture,
   type TranscriptEntry,
 } from "./transcript.js";
+export { evaluateAlerts } from "./alerting.js";
+export {
+  evaluateAgentRun,
+  evalDataset,
+  type EvalResult,
+  type EvalCase,
+  type EvalCheck,
+} from "./eval.js";

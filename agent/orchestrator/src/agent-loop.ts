@@ -14,6 +14,7 @@ import { createTracer } from "./observability/tracer.js";
 import { createCostMonitor } from "./observability/cost-monitor.js";
 import { createPerformanceTracker } from "./observability/performance.js";
 import { createTranscriptCapture } from "./observability/transcript.js";
+import { evaluateAlerts } from "./observability/alerting.js";
 import { logger } from "./lib/logger.js";
 
 interface TaskInput {
@@ -129,6 +130,8 @@ export async function executeTask(task: TaskInput): Promise<ExecutionResult> {
     "Task execution completed",
   );
 
+  await evaluateAlerts(trace);
+
   return {
     success: trace.success,
     traceId: trace.traceId,
@@ -205,6 +208,7 @@ export async function executeHeartbeat(): Promise<ExecutionResult> {
 
   const trace = tracer.finalize();
   await tracer.save();
+  await evaluateAlerts(trace);
 
   return {
     success: trace.success,

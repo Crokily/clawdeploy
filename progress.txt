@@ -78,3 +78,8 @@
   - GET endpoints stay synchronous (read from DB directly)
   - Frontend build (npm run build) is a stronger validation than typecheck alone
 ---
+## 2026-02-21 14:30 UTC - US-009: Heartbeat Autonomous Loop
+- heartbeat.ts: 60s loop, daily cost cap, restart failure tracking
+- index.ts now runs both task queue and heartbeat concurrently
+- Graceful shutdown with prisma.$disconnect()
+---
