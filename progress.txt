@@ -43,3 +43,10 @@
   - Import path adaptation: @/lib/* → ./xxx.js (relative ESM)
   - nginx.ts needed prisma and logger import path updates
 ---
+## 2026-02-21 14:10 UTC - US-005: Destructive & Complex Tools — delete, update
+- instance_delete handles container-not-found gracefully
+- instance_update has file lock + rollback (restart old container on failure)
+- **Learnings:**
+  - promisify(execFile) for async child_process
+  - File lock with open('wx') + try/finally unlink pattern
+---

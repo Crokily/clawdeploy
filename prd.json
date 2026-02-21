@@ -100,7 +100,7 @@
         "npx tsc --noEmit passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "The file lock can use a simple fs.open with wx flag + cleanup on process exit. Image rebuild uses child_process.execFile (not execSync) with proper timeout. Reuse logic from original update/route.ts but improve error handling."
     },
     {
