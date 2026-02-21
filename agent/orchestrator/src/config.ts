@@ -35,7 +35,7 @@ export const COST_LIMITS = {
 // Agent loop limits
 export const LOOP_LIMITS = {
   maxTurnsPerTask: 20,
-  maxTurnsPerHeartbeat: 10,
+  maxTurnsPerHeartbeat: 4,
   taskTimeoutMs: 5 * 60 * 1000, // 5 minutes
   heartbeatIntervalMs: 5 * 60 * 1000, // 5 minutes (avoid rate limits on free models)
   taskPollIntervalMs: 5 * 1000 // 5 seconds
