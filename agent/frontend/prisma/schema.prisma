@@ -30,3 +30,20 @@ model Instance {
   @@index([userId])
   @@index([status])
 }
+
+model Task {
+  id         String   @id @default(cuid())
+  type       String   // instance_create, instance_start, instance_stop, instance_delete, instance_update
+  params     Json     @default("{}")
+  status     String   @default("pending") // pending, processing, completed, failed
+  instanceId String?
+  userId     String
+  result     Json?
+  error      String?
+  traceId    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status])
+  @@index([userId])
+}

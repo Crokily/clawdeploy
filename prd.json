@@ -134,7 +134,7 @@
         "npx tsc --noEmit passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "The bash tool should be created using the patterns from pi-agent-core. Since we're at Layer 2 (agentLoop), bash is a regular Tool definition with execute() that calls child_process.exec. The permission gate runs inside execute() BEFORE the actual command. System prompt is ~500 tokens max."
     },
     {

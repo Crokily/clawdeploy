@@ -1,8 +1,6 @@
 import { Prisma, type Instance } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthErrorResponse } from "@/lib/auth";
-import { removeContainer } from "@/lib/docker";
-import { removeInstanceStorage } from "@/lib/instance-config";
 import { instanceIdSchema, updateInstanceSchema } from "@/lib/instance-schema";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -221,52 +219,17 @@ export async function DELETE(
       return notFound();
     }
 
-    if (instance.containerId) {
-      try {
-        await removeContainer(instance.containerId);
-      } catch (dockerError: unknown) {
-        logger.warn(
-          {
-            err: dockerError,
-            userId,
-            instanceId: instance.id,
-            containerId: instance.containerId,
-          },
-          "Failed to remove Docker container during instance deletion",
-        );
-      }
-    }
-
-    // Clean up persistent storage
-    try {
-      await removeInstanceStorage(instance.id);
-    } catch (storageError: unknown) {
-      logger.warn(
-        { err: storageError, instanceId: instance.id },
-        "Failed to remove instance storage during deletion",
-      );
-    }
-
-    const result = await prisma.instance.deleteMany({
-      where: {
-        id: idResult.id,
+    await prisma.task.create({
+      data: {
+        type: "instance_delete",
+        params: { instanceId: idResult.id },
         userId,
+        instanceId: idResult.id,
+        status: "pending",
       },
     });
 
-    if (result.count === 0) {
-      return notFound();
-    }
-
-    // Update Nginx port map
-    try {
-      const { updateNginxPortMap } = await import("@/lib/nginx");
-      await updateNginxPortMap();
-    } catch (nginxError) {
-      logger.warn({ err: nginxError }, "Failed to update Nginx port map after deletion");
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { status: 202 });
   } catch (error: unknown) {
     logger.error(
       { err: error, userId, instanceId: idResult.id },

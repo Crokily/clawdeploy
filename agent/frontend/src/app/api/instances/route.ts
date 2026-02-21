@@ -1,15 +1,6 @@
 import type { Instance } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthErrorResponse } from "@/lib/auth";
-import { createContainer } from "@/lib/docker";
-import {
-  generateGatewayToken,
-  generateOpenClawConfig,
-  generateEnvFile,
-  createInstanceStorage,
-  writeInstanceConfig,
-  removeInstanceStorage,
-} from "@/lib/instance-config";
 import { createInstanceSchema } from "@/lib/instance-schema";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -111,103 +102,44 @@ export async function POST(
   }
 
   try {
-    // 1. Create DB record
-    const instance = await prisma.instance.create({
-      data: {
-        name: parsed.data.name,
-        channel: parsed.data.channel || "",
-        botToken: parsed.data.botToken,
-        apiKey: parsed.data.apiKey,
-        aiProvider: parsed.data.aiProvider || null,
-        region: parsed.data.region,
-        instanceType: parsed.data.instanceType,
-        userId,
-        status: "creating",
-      },
+    const instance = await prisma.$transaction(async (tx) => {
+      const created = await tx.instance.create({
+        data: {
+          name: parsed.data.name,
+          channel: parsed.data.channel || "",
+          botToken: parsed.data.botToken,
+          apiKey: parsed.data.apiKey,
+          aiProvider: parsed.data.aiProvider || null,
+          region: parsed.data.region,
+          instanceType: parsed.data.instanceType,
+          userId,
+          status: "creating",
+        },
+      });
+
+      await tx.task.create({
+        data: {
+          type: "instance_create",
+          params: {
+            name: parsed.data.name,
+            channel: parsed.data.channel,
+            botToken: parsed.data.botToken,
+            aiProvider: parsed.data.aiProvider,
+            apiKey: parsed.data.apiKey,
+          },
+          userId,
+          instanceId: created.id,
+          status: "pending",
+        },
+      });
+
+      return created;
     });
 
-    let finalInstance = instance;
-
-    try {
-      // 2. Create persistent storage
-      await createInstanceStorage(instance.id);
-
-      // 3. Generate config
-      const gatewayToken = generateGatewayToken();
-      const configParams = {
-        instanceId: instance.id,
-        gatewayToken,
-        channel: parsed.data.channel as "telegram" | "discord" | "" | undefined,
-        botToken: parsed.data.botToken,
-        aiProvider: parsed.data.aiProvider,
-        apiKey: parsed.data.apiKey,
-      };
-
-      const openclawConfig = generateOpenClawConfig(configParams);
-      const envContent = generateEnvFile(configParams);
-      await writeInstanceConfig(instance.id, openclawConfig, envContent);
-
-      // 4. Create Docker container
-      const envVars: Record<string, string> = {};
-      if (parsed.data.apiKey && parsed.data.aiProvider) {
-        const providerEnvMap: Record<string, string> = {
-          anthropic: "ANTHROPIC_API_KEY",
-          openai: "OPENAI_API_KEY",
-          gemini: "GEMINI_API_KEY",
-          openrouter: "OPENROUTER_API_KEY",
-        };
-        const envVar = providerEnvMap[parsed.data.aiProvider];
-        if (envVar) {
-          envVars[envVar] = parsed.data.apiKey;
-        }
-      }
-
-      const { containerId, port } = await createContainer({
-        instanceId: instance.id,
-        gatewayToken,
-        envVars,
-      });
-
-      // 5. Update DB with container details
-      finalInstance = await prisma.instance.update({
-        where: { id: instance.id },
-        data: {
-          containerId,
-          port,
-          gatewayToken,
-          status: "running",
-        },
-      });
-
-      // 6. Update Nginx port map (fire and forget)
-      try {
-        const { updateNginxPortMap } = await import("@/lib/nginx");
-        await updateNginxPortMap();
-      } catch (nginxError) {
-        logger.warn({ err: nginxError }, "Failed to update Nginx port map");
-      }
-    } catch (dockerError: unknown) {
-      logger.error(
-        { err: dockerError, userId, instanceId: instance.id },
-        "Failed to create OpenClaw instance",
-      );
-
-      // Cleanup storage on failure
-      try {
-        await removeInstanceStorage(instance.id);
-      } catch {
-        // Ignore cleanup errors
-      }
-
-      finalInstance = await prisma.instance.update({
-        where: { id: instance.id },
-        data: {
-          status: "error",
-        },
-      });
-    }
-
-    return NextResponse.json({ instance: redactInstanceSecrets(finalInstance) }, { status: 201 });
+    return NextResponse.json(
+      { instance: redactInstanceSecrets(instance) },
+      { status: 202 },
+    );
   } catch (error: unknown) {
     logger.error({ err: error, userId }, "Failed to create instance");
     return internalServerError();

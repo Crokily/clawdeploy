@@ -57,3 +57,13 @@
 - **Learnings:**
   - report_result is critical for structured agent output — system prompt must enforce calling it
 ---
+## 2026-02-21 14:19 UTC - US-007: Agent Loop + System Prompt + Bash Gate
+- All tools updated to AgentTool interface (4-arg execute)
+- Bash tool with 8+ blocked patterns
+- System prompts: TASK_PROMPT (~500 tokens), HEARTBEAT_PROMPT (~300 tokens)
+- agent-loop.ts: executeTask() + executeHeartbeat() with tracer/cost/perf/transcript
+- **Learnings:**
+  - AgentTool requires label + 4-arg execute, different from simple Tool
+  - convertToLlm filters messages to only user/assistant/toolResult roles
+  - Cost monitor isExceeded() checked after each event for fast abort
+---

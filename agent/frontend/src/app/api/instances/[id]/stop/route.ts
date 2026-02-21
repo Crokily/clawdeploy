@@ -1,7 +1,6 @@
 import type { Instance } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthErrorResponse } from "@/lib/auth";
-import { stopContainer } from "@/lib/docker";
 import { instanceIdSchema } from "@/lib/instance-schema";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -29,13 +28,6 @@ function invalidInput(details: unknown): NextResponse<ErrorResponse> {
 
 function notFound(): NextResponse<ErrorResponse> {
   return NextResponse.json({ error: "Instance not found" }, { status: 404 });
-}
-
-function missingContainer(): NextResponse<ErrorResponse> {
-  return NextResponse.json(
-    { error: "Instance has no container" },
-    { status: 400 },
-  );
 }
 
 function internalServerError(): NextResponse<ErrorResponse> {
@@ -94,46 +86,17 @@ export async function POST(
       return notFound();
     }
 
-    if (!instance.containerId) {
-      return missingContainer();
-    }
-
-    await stopContainer(instance.containerId);
-
-    const result = await prisma.instance.updateMany({
-      where: {
-        id: idResult.id,
-        userId,
-      },
+    await prisma.task.create({
       data: {
-        status: "stopped",
-      },
-    });
-
-    if (result.count === 0) {
-      return notFound();
-    }
-
-    const updated = await prisma.instance.findFirst({
-      where: {
-        id: idResult.id,
+        type: "instance_stop",
+        params: { instanceId: idResult.id },
         userId,
+        instanceId: idResult.id,
+        status: "pending",
       },
     });
 
-    if (!updated) {
-      return notFound();
-    }
-
-    // Update Nginx port map (remove stopped instance)
-    try {
-      const { updateNginxPortMap } = await import("@/lib/nginx");
-      await updateNginxPortMap();
-    } catch {
-      // Non-critical
-    }
-
-    return NextResponse.json({ instance: updated });
+    return NextResponse.json({ instance }, { status: 202 });
   } catch (error: unknown) {
     logger.error(
       { err: error, userId, instanceId: idResult.id },
