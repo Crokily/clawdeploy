@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type, type Static } from "@sinclair/typebox";
 import { prisma } from "../lib/prisma.js";
 import { removeContainer } from "../lib/docker.js";
 import { removeInstanceStorage } from "../lib/instance-config.js";
@@ -14,21 +14,29 @@ function isContainerNotFoundError(error: unknown): boolean {
   return message.includes("not found") || message.includes("no such container");
 }
 
+const parameters = Type.Object({
+  instanceId: Type.String({ description: "Instance ID to delete" }),
+  userId: Type.String({ description: "Owner user ID" }),
+});
+
 export const instanceDeleteTool = {
   name: "instance_delete",
+  label: "Delete Instance",
   description:
     "Delete an existing instance for the owning user by removing container, storage, DB record, and syncing Nginx.",
-  parameters: Type.Object({
-    instanceId: Type.String({ description: "Instance ID to delete" }),
-    userId: Type.String({ description: "Owner user ID" }),
-  }),
-  execute: async (args: { instanceId: string; userId: string }) => {
-    if (!args.userId || !args.userId.startsWith("user_")) {
+  parameters,
+  execute: async (
+    toolCallId: string,
+    params: Static<typeof parameters>,
+    signal?: AbortSignal,
+    onUpdate?: (partialResult: any) => void,
+  ) => {
+    if (!params.userId || !params.userId.startsWith("user_")) {
       throw new Error("Invalid userId - must be a valid Clerk user ID");
     }
 
     const instance = await prisma.instance.findUnique({
-      where: { id: args.instanceId },
+      where: { id: params.instanceId },
       select: { id: true, userId: true, containerId: true },
     });
 
@@ -36,7 +44,7 @@ export const instanceDeleteTool = {
       throw new Error("Instance not found");
     }
 
-    if (instance.userId !== args.userId) {
+    if (instance.userId !== params.userId) {
       throw new Error("Instance not owned by user");
     }
 

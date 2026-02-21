@@ -1,26 +1,34 @@
-import { Type } from "@sinclair/typebox";
+import { Type, type Static } from "@sinclair/typebox";
 import { prisma } from "../lib/prisma.js";
 import { stopContainer } from "../lib/docker.js";
 import { updateNginxPortMap } from "../lib/nginx.js";
 import { logger } from "../lib/logger.js";
 
+const parameters = Type.Object({
+  instanceId: Type.String({ description: "Instance ID to stop" }),
+  userId: Type.String({ description: "Owner user ID" }),
+});
+
 export const instanceStopTool = {
   name: "instance_stop",
+  label: "Stop Instance",
   description:
     "Stop an existing instance container for the owning user, mark status as stopped, and sync Nginx.",
-  parameters: Type.Object({
-    instanceId: Type.String({ description: "Instance ID to stop" }),
-    userId: Type.String({ description: "Owner user ID" }),
-  }),
-  execute: async (args: { instanceId: string; userId: string }) => {
-    if (!args.userId || !args.userId.startsWith("user_")) {
+  parameters,
+  execute: async (
+    toolCallId: string,
+    params: Static<typeof parameters>,
+    signal?: AbortSignal,
+    onUpdate?: (partialResult: any) => void,
+  ) => {
+    if (!params.userId || !params.userId.startsWith("user_")) {
       throw new Error("Invalid userId - must be a valid Clerk user ID");
     }
 
     const instance = await prisma.instance.findFirst({
       where: {
-        id: args.instanceId,
-        userId: args.userId,
+        id: params.instanceId,
+        userId: params.userId,
       },
     });
 
@@ -36,8 +44,8 @@ export const instanceStopTool = {
 
     const result = await prisma.instance.updateMany({
       where: {
-        id: args.instanceId,
-        userId: args.userId,
+        id: params.instanceId,
+        userId: params.userId,
       },
       data: {
         status: "stopped",
@@ -50,8 +58,8 @@ export const instanceStopTool = {
 
     const updated = await prisma.instance.findFirst({
       where: {
-        id: args.instanceId,
-        userId: args.userId,
+        id: params.instanceId,
+        userId: params.userId,
       },
       select: {
         id: true,

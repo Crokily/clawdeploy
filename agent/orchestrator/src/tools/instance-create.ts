@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type, type Static } from "@sinclair/typebox";
 import { prisma } from "../lib/prisma.js";
 import { createContainer } from "../lib/docker.js";
 import {
@@ -12,48 +12,49 @@ import {
 import { updateNginxPortMap } from "../lib/nginx.js";
 import { logger } from "../lib/logger.js";
 
+const parameters = Type.Object({
+  name: Type.String({ description: "Instance display name" }),
+  userId: Type.String({ description: "Owner user ID" }),
+  channel: Type.Optional(
+    Type.String({ description: "Channel type: telegram, discord, or empty" }),
+  ),
+  botToken: Type.Optional(
+    Type.String({ description: "Bot token for the channel" }),
+  ),
+  aiProvider: Type.Optional(
+    Type.String({ description: "AI provider: anthropic, openai, gemini, openrouter" }),
+  ),
+  apiKey: Type.Optional(
+    Type.String({ description: "API key for the AI provider" }),
+  ),
+});
+
 export const instanceCreateTool = {
   name: "instance_create",
+  label: "Create Instance",
   description:
     "Create a new OpenClaw instance: creates DB record, storage, config, Docker container, and updates Nginx. Returns instance details.",
-  parameters: Type.Object({
-    name: Type.String({ description: "Instance display name" }),
-    userId: Type.String({ description: "Owner user ID" }),
-    channel: Type.Optional(
-      Type.String({ description: "Channel type: telegram, discord, or empty" }),
-    ),
-    botToken: Type.Optional(
-      Type.String({ description: "Bot token for the channel" }),
-    ),
-    aiProvider: Type.Optional(
-      Type.String({ description: "AI provider: anthropic, openai, gemini, openrouter" }),
-    ),
-    apiKey: Type.Optional(
-      Type.String({ description: "API key for the AI provider" }),
-    ),
-  }),
-  execute: async (args: {
-    name: string;
-    userId: string;
-    channel?: string;
-    botToken?: string;
-    aiProvider?: string;
-    apiKey?: string;
-  }) => {
-    if (!args.userId || !args.userId.startsWith("user_")) {
+  parameters,
+  execute: async (
+    toolCallId: string,
+    params: Static<typeof parameters>,
+    signal?: AbortSignal,
+    onUpdate?: (partialResult: any) => void,
+  ) => {
+    if (!params.userId || !params.userId.startsWith("user_")) {
       throw new Error("Invalid userId - must be a valid Clerk user ID");
     }
 
-    logger.info({ userId: args.userId, name: args.name }, "Creating instance");
+    logger.info({ userId: params.userId, name: params.name }, "Creating instance");
 
     const instance = await prisma.instance.create({
       data: {
-        name: args.name,
-        channel: args.channel || "",
-        botToken: args.botToken,
-        apiKey: args.apiKey,
-        aiProvider: args.aiProvider || null,
-        userId: args.userId,
+        name: params.name,
+        channel: params.channel || "",
+        botToken: params.botToken,
+        apiKey: params.apiKey,
+        aiProvider: params.aiProvider || null,
+        userId: params.userId,
         status: "creating",
       },
     });
@@ -65,10 +66,10 @@ export const instanceCreateTool = {
       const configParams = {
         instanceId: instance.id,
         gatewayToken,
-        channel: args.channel as "telegram" | "discord" | "" | undefined,
-        botToken: args.botToken,
-        aiProvider: args.aiProvider,
-        apiKey: args.apiKey,
+        channel: params.channel as "telegram" | "discord" | "" | undefined,
+        botToken: params.botToken,
+        aiProvider: params.aiProvider,
+        apiKey: params.apiKey,
       };
 
       const openclawConfig = generateOpenClawConfig(configParams);
@@ -76,16 +77,16 @@ export const instanceCreateTool = {
       await writeInstanceConfig(instance.id, openclawConfig, envContent);
 
       const envVars: Record<string, string> = {};
-      if (args.apiKey && args.aiProvider) {
+      if (params.apiKey && params.aiProvider) {
         const providerEnvMap: Record<string, string> = {
           anthropic: "ANTHROPIC_API_KEY",
           openai: "OPENAI_API_KEY",
           gemini: "GEMINI_API_KEY",
           openrouter: "OPENROUTER_API_KEY",
         };
-        const envVar = providerEnvMap[args.aiProvider.toLowerCase()];
+        const envVar = providerEnvMap[params.aiProvider.toLowerCase()];
         if (envVar) {
-          envVars[envVar] = args.apiKey;
+          envVars[envVar] = params.apiKey;
         }
       }
 

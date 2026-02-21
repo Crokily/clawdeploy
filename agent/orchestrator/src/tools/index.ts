@@ -6,7 +6,7 @@ import { instanceUpdateTool } from "./instance-update.js";
 import { nginxSyncTool } from "./nginx-sync.js";
 import { reportResultTool } from "./report-result.js";
 
-export const tools = [
+export const allTools = [
   instanceCreateTool,
   instanceStartTool,
   instanceStopTool,

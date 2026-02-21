@@ -1,36 +1,38 @@
-import { Type } from "@sinclair/typebox";
+import { Type, type Static } from "@sinclair/typebox";
 import { writeFile, mkdir } from "fs/promises";
 import { logger } from "../lib/logger.js";
 
 const REPORT_DIR = "/var/log/pideploy/reports";
+const parameters = Type.Object({
+  success: Type.Boolean({ description: "Whether the task succeeded" }),
+  action: Type.String({
+    description:
+      "What action was performed (e.g., instance_create, heartbeat_check)",
+  }),
+  data: Type.Optional(
+    Type.Record(Type.String(), Type.Any(), {
+      description: "Structured result data",
+    }),
+  ),
+  errors: Type.Optional(
+    Type.Array(Type.String(), { description: "Error messages if any" }),
+  ),
+});
 
 export const reportResultTool = {
   name: "report_result",
+  label: "Report Result",
   description:
     "MUST call when any task completes (success or failure). Reports structured result for the orchestrator to process.",
-  parameters: Type.Object({
-    success: Type.Boolean({ description: "Whether the task succeeded" }),
-    action: Type.String({
-      description:
-        "What action was performed (e.g., instance_create, heartbeat_check)",
-    }),
-    data: Type.Optional(
-      Type.Record(Type.String(), Type.Any(), {
-        description: "Structured result data",
-      }),
-    ),
-    errors: Type.Optional(
-      Type.Array(Type.String(), { description: "Error messages if any" }),
-    ),
-  }),
-  execute: async (args: {
-    success: boolean;
-    action: string;
-    data?: Record<string, any>;
-    errors?: string[];
-  }) => {
+  parameters,
+  execute: async (
+    toolCallId: string,
+    params: Static<typeof parameters>,
+    signal?: AbortSignal,
+    onUpdate?: (partialResult: any) => void,
+  ) => {
     const report = {
-      ...args,
+      ...params,
       timestamp: new Date().toISOString(),
     };
 

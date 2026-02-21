@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type, type Static } from "@sinclair/typebox";
 import { execFile } from "child_process";
 import { open, unlink } from "fs/promises";
 import { promisify } from "util";
@@ -82,28 +82,36 @@ async function rebuildImage(): Promise<void> {
   );
 }
 
+const parameters = Type.Object({
+  instanceId: Type.String({ description: "Instance ID to update" }),
+  userId: Type.String({ description: "Owner user ID" }),
+});
+
 export const instanceUpdateTool = {
   name: "instance_update",
+  label: "Update Instance",
   description:
     "Update an instance for the owning user by recreating the container against the latest image and syncing Nginx.",
-  parameters: Type.Object({
-    instanceId: Type.String({ description: "Instance ID to update" }),
-    userId: Type.String({ description: "Owner user ID" }),
-  }),
-  execute: async (args: { instanceId: string; userId: string }) => {
-    if (!args.userId || !args.userId.startsWith("user_")) {
+  parameters,
+  execute: async (
+    toolCallId: string,
+    params: Static<typeof parameters>,
+    signal?: AbortSignal,
+    onUpdate?: (partialResult: any) => void,
+  ) => {
+    if (!params.userId || !params.userId.startsWith("user_")) {
       throw new Error("Invalid userId - must be a valid Clerk user ID");
     }
 
     const instance = await prisma.instance.findUnique({
-      where: { id: args.instanceId },
+      where: { id: params.instanceId },
     });
 
     if (!instance) {
       throw new Error("Instance not found");
     }
 
-    if (instance.userId !== args.userId) {
+    if (instance.userId !== params.userId) {
       throw new Error("Instance not owned by user");
     }
 
@@ -121,7 +129,7 @@ export const instanceUpdateTool = {
     let replacementContainerId: string | null = null;
 
     logger.info(
-      { instanceId: instance.id, userId: args.userId },
+      { instanceId: instance.id, userId: params.userId },
       "Starting instance update",
     );
 

@@ -115,7 +115,7 @@
         "npx tsc --noEmit passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "nginx_sync is modeled on existing agent/frontend/src/lib/nginx.ts. report_result follows pi-agent-app-dev production.md 'Structured Output via Report Tool' pattern. The system prompt will instruct the agent to always call report_result when a task completes."
     },
     {
