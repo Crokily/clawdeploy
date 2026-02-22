@@ -22,28 +22,28 @@
         "cd agent/orchestrator && npx tsc --noEmit passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "LangFuse v3 docker-compose needs: postgres:15 + langfuse/langfuse:latest. Map LangFuse port to 3500 to avoid conflicts. PostgreSQL data volume for persistence. Use NEXTAUTH_SECRET, SALT, DATABASE_URL env vars for LangFuse."
     },
     {
       "id": "US-002",
-      "title": "Tracer Module Rewrite — LangFuse SDK Integration",
+      "title": "Tracer Module Rewrite \u2014 LangFuse SDK Integration",
       "description": "As a developer, I need the tracer to push trace/generation/span data to LangFuse while keeping local JSON fallback.",
       "acceptanceCriteria": [
         "langfuse@3.38.6 installed in agent/orchestrator/package.json",
         "tracer.ts rewritten: createTracer() creates both LangFuse trace and local AgentTrace",
-        "processEvent() maps turn_start/end → LangFuse generation(), tool_execution_start/end → LangFuse span()",
+        "processEvent() maps turn_start/end \u2192 LangFuse generation(), tool_execution_start/end \u2192 LangFuse span()",
         "message_end event passes token usage to LangFuse generation via usage field",
         "finalize() calls langfuse.flush() to ensure data is sent",
         "save() still writes local JSON file as fallback",
-        "All LangFuse SDK calls wrapped in try-catch — failures only log warnings, never crash task execution",
-        "AgentTrace / AgentSpan / Tracer interfaces unchanged — alerting.ts and eval.ts require zero changes",
+        "All LangFuse SDK calls wrapped in try-catch \u2014 failures only log warnings, never crash task execution",
+        "AgentTrace / AgentSpan / Tracer interfaces unchanged \u2014 alerting.ts and eval.ts require zero changes",
         "transcript.ts removed or made optional (LangFuse captures I/O natively via generation input/output)",
         "cd agent/orchestrator && npx tsc --noEmit passes"
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Key mapping: our generation span → lf trace.generation({ name, model, usage: { input, output }, metadata: { provider, stopReason } }). Our tool span → lf trace.span({ name, input: args, output: result, level: isError ? 'ERROR' : 'DEFAULT' }). Keep processEvent() signature identical so agent-loop.ts changes are minimal."
+      "notes": "Key mapping: our generation span \u2192 lf trace.generation({ name, model, usage: { input, output }, metadata: { provider, stopReason } }). Our tool span \u2192 lf trace.span({ name, input: args, output: result, level: isError ? 'ERROR' : 'DEFAULT' }). Keep processEvent() signature identical so agent-loop.ts changes are minimal."
     },
     {
       "id": "US-003",
@@ -53,7 +53,7 @@
         "config.ts exports getLangfuseConfig() returning { publicKey, secretKey, baseUrl, enabled }",
         "getLangfuseConfig() reads LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_BASE_URL from env, returns enabled=false if keys missing",
         "pideploy-orchestrator.service EnvironmentFile includes .env.langfuse",
-        "Orchestrator restart succeeds — journalctl shows LangFuse initialization log",
+        "Orchestrator restart succeeds \u2014 journalctl shows LangFuse initialization log",
         "Manually create a test task (instance_start) via Prisma",
         "After task completes, LangFuse API GET /api/public/traces returns the trace",
         "Trace contains: name=instance_start, generations with model+usage, spans with tool names",
@@ -80,7 +80,7 @@
     },
     {
       "id": "US-005",
-      "title": "E2E Test — Full Observability Pipeline",
+      "title": "E2E Test \u2014 Full Observability Pipeline",
       "description": "As a developer, I need an automated test script that verifies the complete observability pipeline from task creation to LangFuse trace visibility.",
       "acceptanceCriteria": [
         "agent/scripts/e2e-langfuse-test.sh created and executable",

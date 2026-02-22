@@ -1,0 +1,18 @@
+## Codebase Patterns
+- Observability modules in agent/orchestrator/src/observability/
+- tracer.ts is the single integration point — agent-loop.ts only calls createTracer/processEvent/finalize/save
+- All LangFuse calls must be try-catch wrapped (non-fatal observability)
+- Config reads from env vars, loaded via systemd EnvironmentFile
+- Discord notifications via outbox_messages table in /home/ubuntu/discord-agent/discord_agent.db
+---
+## 2026-02-22 - US-001: LangFuse Self-Hosted Deployment
+- Created langfuse/docker-compose.yml with postgres:15-alpine + langfuse:2
+- LangFuse v3 requires ClickHouse — switched to v2 (PostgreSQL only, lighter)
+- LangFuse running on port 3500, API verified with init keys
+- systemd service pideploy-langfuse.service created and enabled
+- .env.langfuse created with API keys
+- **Learnings:**
+  - LangFuse latest (v3) needs ClickHouse — use langfuse:2 tag for simple setups
+  - LANGFUSE_INIT_* env vars auto-create org/project/user/keys on first boot
+  - PostgreSQL mapped to 5433 to avoid conflicts
+---
