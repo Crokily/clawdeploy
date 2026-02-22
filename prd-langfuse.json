@@ -42,7 +42,7 @@
         "cd agent/orchestrator && npx tsc --noEmit passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Key mapping: our generation span \u2192 lf trace.generation({ name, model, usage: { input, output }, metadata: { provider, stopReason } }). Our tool span \u2192 lf trace.span({ name, input: args, output: result, level: isError ? 'ERROR' : 'DEFAULT' }). Keep processEvent() signature identical so agent-loop.ts changes are minimal."
     },
     {

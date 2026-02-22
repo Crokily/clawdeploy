@@ -16,3 +16,13 @@
   - LANGFUSE_INIT_* env vars auto-create org/project/user/keys on first boot
   - PostgreSQL mapped to 5433 to avoid conflicts
 ---
+## 2026-02-22 - US-002: Tracer Module Rewrite — LangFuse SDK
+- Rewrote tracer.ts (196→304 lines) with dual output: LangFuse + local JSON
+- LangFuse generation() for LLM turns, span() for tool executions
+- All LF calls try-catch wrapped, lfEnabled flag guards missing keys
+- Interfaces unchanged — agent-loop.ts zero changes needed
+- **Learnings:**
+  - Langfuse SDK uses Langfuse class with trace()/generation()/span() fluent API
+  - generation.end() accepts usage object, span.end() accepts level/statusMessage
+  - flushAsync() needed to ensure data sent before process ends
+---
