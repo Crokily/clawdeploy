@@ -28,7 +28,7 @@ services:
       NEXTAUTH_SECRET: "WjY8dyp2WGLRCUENEz1BxYbF4CtkAAEPsGrRnjJ2lwo="
       SALT: "KoPWhBvY++uR7cXYXcTm1DIWdqHh1jhP1AN9adcrPeM="
       DATABASE_URL: postgresql://langfuse:langfuse@postgres:5432/langfuse
-      NEXTAUTH_URL: http://localhost:3500
+      NEXTAUTH_URL: https://langfuse.claw.a2a.ing
       LANGFUSE_INIT_ORG_ID: pideploy
       LANGFUSE_INIT_ORG_NAME: piDeploy
       LANGFUSE_INIT_PROJECT_ID: pideploy-orchestrator
