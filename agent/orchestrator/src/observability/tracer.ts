@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { writeFile, mkdir } from "fs/promises";
+import { Langfuse } from "langfuse";
 import { logger } from "../lib/logger.js";
 
 const TRACE_DIR = "/var/log/pideploy/traces";
@@ -61,6 +62,39 @@ export function createTracer(opts: {
 
   let currentTurnSpanId: string | undefined;
   const toolStartTimes = new Map<string, { spanId: string; startedAt: number }>();
+  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
+  const secretKey = process.env.LANGFUSE_SECRET_KEY;
+  const lfEnabled = Boolean(publicKey && secretKey);
+  let langfuse: Langfuse | null = null;
+  let lfTrace: any = null;
+  const lfGenerationsByTurnSpanId = new Map<string, any>();
+  const lfToolSpansByToolCallId = new Map<string, any>();
+
+  if (lfEnabled) {
+    try {
+      langfuse = new Langfuse({
+        publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+        secretKey: process.env.LANGFUSE_SECRET_KEY,
+        baseUrl: process.env.LANGFUSE_BASE_URL || "http://localhost:3500",
+      });
+    } catch (err) {
+      logger.warn({ err }, "LangFuse client init failed (non-fatal)");
+    }
+  }
+
+  if (lfEnabled && langfuse) {
+    try {
+      lfTrace = langfuse.trace({
+        id: trace.traceId,
+        name: opts.taskType || "unknown",
+        userId: opts.userId,
+        sessionId: trace.sessionId,
+        metadata: { taskType: opts.taskType },
+      });
+    } catch (err) {
+      logger.warn({ err }, "LangFuse trace creation failed (non-fatal)");
+    }
+  }
 
   function processEvent(event: any): void {
     switch (event.type) {
@@ -73,6 +107,19 @@ export function createTracer(opts: {
           startedAt: Date.now(),
           attributes: {},
         });
+        if (currentTurnSpanId) {
+          try {
+            const lfGeneration = lfTrace?.generation({
+              name: "agent_turn",
+              startTime: new Date(),
+            });
+            if (lfGeneration) {
+              lfGenerationsByTurnSpanId.set(currentTurnSpanId, lfGeneration);
+            }
+          } catch (err) {
+            logger.warn({ err }, "LangFuse generation creation failed (non-fatal)");
+          }
+        }
         break;
       }
       case "turn_end": {
@@ -111,6 +158,24 @@ export function createTracer(opts: {
             trace.success = false;
             trace.error = (msg as any).errorMessage ?? "Assistant generation failed";
           }
+
+          if (currentTurnSpanId) {
+            try {
+              const lfGeneration = lfGenerationsByTurnSpanId.get(currentTurnSpanId);
+              lfGeneration?.end({
+                model: msg.model,
+                usage: {
+                  input: usage?.input,
+                  output: usage?.output,
+                  total: (usage?.input || 0) + (usage?.output || 0),
+                },
+                output: (msg as any).content,
+                metadata: { provider: msg.provider, stopReason: msg.stopReason },
+              });
+            } catch (err) {
+              logger.warn({ err }, "LangFuse generation end failed (non-fatal)");
+            }
+          }
         }
         break;
       }
@@ -126,6 +191,18 @@ export function createTracer(opts: {
           startedAt,
           attributes: { args: event.args },
         });
+        try {
+          const lfSpan = lfTrace?.span({
+            name: event.toolName,
+            startTime: new Date(),
+            input: event.args,
+          });
+          if (lfSpan && event.toolCallId) {
+            lfToolSpansByToolCallId.set(event.toolCallId, lfSpan);
+          }
+        } catch (err) {
+          logger.warn({ err }, "LangFuse tool span creation failed (non-fatal)");
+        }
         break;
       }
       case "tool_execution_end": {
@@ -142,6 +219,21 @@ export function createTracer(opts: {
             }
           }
           toolStartTimes.delete(event.toolCallId);
+        }
+        try {
+          const lfSpan = lfToolSpansByToolCallId.get(event.toolCallId);
+          lfSpan?.end({
+            endTime: new Date(),
+            output: event.result,
+            level: event.isError ? "ERROR" : "DEFAULT",
+            statusMessage: event.isError ? "Tool execution failed" : undefined,
+          });
+        } catch (err) {
+          logger.warn({ err }, "LangFuse tool span end failed (non-fatal)");
+        } finally {
+          if (event.toolCallId) {
+            lfToolSpansByToolCallId.delete(event.toolCallId);
+          }
         }
         break;
       }
@@ -181,6 +273,15 @@ export function createTracer(opts: {
     getTrace: () => trace,
     finalize: () => {
       trace.endedAt = trace.endedAt ?? Date.now();
+      try {
+        lfTrace?.update({
+          output: { success: trace.success, error: trace.error },
+          metadata: { totalCost: trace.totalCost, totalTokens: trace.totalTokens },
+          tags: [trace.taskType || "unknown", trace.success ? "success" : "failure"],
+        });
+      } catch (err) {
+        logger.warn({ err }, "LangFuse trace update failed (non-fatal)");
+      }
       return trace;
     },
     save: async () => {
@@ -190,6 +291,13 @@ export function createTracer(opts: {
       const filepath = `${TRACE_DIR}/${filename}`;
       await writeFile(filepath, JSON.stringify(trace, null, 2));
       logger.info({ traceId: trace.traceId, filepath }, "Trace saved");
+      if (langfuse) {
+        try {
+          await langfuse.flushAsync();
+        } catch (err) {
+          logger.warn({ err }, "LangFuse flush failed (non-fatal)");
+        }
+      }
       return filepath;
     },
   };
