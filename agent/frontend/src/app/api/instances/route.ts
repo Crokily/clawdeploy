@@ -121,6 +121,8 @@ export async function POST(
         data: {
           type: "instance_create",
           params: {
+            instanceId: created.id,
+            userId,
             name: parsed.data.name,
             channel: parsed.data.channel,
             botToken: parsed.data.botToken,

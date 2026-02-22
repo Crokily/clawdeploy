@@ -15,6 +15,9 @@ import { logger } from "../lib/logger.js";
 const parameters = Type.Object({
   name: Type.String({ description: "Instance display name" }),
   userId: Type.String({ description: "Owner user ID" }),
+  instanceId: Type.Optional(
+    Type.String({ description: "Existing placeholder instance ID to reuse" }),
+  ),
   channel: Type.Optional(
     Type.String({ description: "Channel type: telegram, discord, or empty" }),
   ),
@@ -45,19 +48,75 @@ export const instanceCreateTool = {
       throw new Error("Invalid userId - must be a valid Clerk user ID");
     }
 
-    logger.info({ userId: params.userId, name: params.name }, "Creating instance");
+    logger.info(
+      { userId: params.userId, instanceId: params.instanceId, name: params.name },
+      "Creating instance",
+    );
 
-    const instance = await prisma.instance.create({
-      data: {
-        name: params.name,
-        channel: params.channel || "",
-        botToken: params.botToken,
-        apiKey: params.apiKey,
-        aiProvider: params.aiProvider || null,
-        userId: params.userId,
-        status: "creating",
-      },
-    });
+    const instance = params.instanceId
+      ? await (async () => {
+          const existing = await prisma.instance.findUnique({
+            where: { id: params.instanceId },
+          });
+
+          if (!existing) {
+            throw new Error(`Instance not found: ${params.instanceId}`);
+          }
+
+          if (existing.userId !== params.userId) {
+            throw new Error("Instance ownership mismatch");
+          }
+
+          return prisma.instance.update({
+            where: { id: existing.id },
+            data: {
+              name: params.name,
+              channel: params.channel || "",
+              botToken: params.botToken,
+              apiKey: params.apiKey,
+              aiProvider: params.aiProvider || null,
+              status: "creating",
+            },
+          });
+        })()
+      : await (async () => {
+          const reusable = await prisma.instance.findFirst({
+            where: {
+              userId: params.userId,
+              name: params.name,
+              status: "creating",
+              containerId: null,
+              port: null,
+            },
+            orderBy: { createdAt: "asc" },
+          });
+
+          if (reusable) {
+            return prisma.instance.update({
+              where: { id: reusable.id },
+              data: {
+                name: params.name,
+                channel: params.channel || "",
+                botToken: params.botToken,
+                apiKey: params.apiKey,
+                aiProvider: params.aiProvider || null,
+                status: "creating",
+              },
+            });
+          }
+
+          return prisma.instance.create({
+            data: {
+              name: params.name,
+              channel: params.channel || "",
+              botToken: params.botToken,
+              apiKey: params.apiKey,
+              aiProvider: params.aiProvider || null,
+              userId: params.userId,
+              status: "creating",
+            },
+          });
+        })();
 
     try {
       await createInstanceStorage(instance.id);

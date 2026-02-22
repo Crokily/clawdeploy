@@ -75,7 +75,7 @@ export async function executeTask(task: TaskInput): Promise<ExecutionResult> {
 
   const userMessage: Message = {
     role: "user",
-    content: `Execute task: ${task.type}\nUser: ${task.userId}\nParameters: ${JSON.stringify(task.params)}`,
+    content: `Execute task: ${task.type}\nUser: ${task.userId}${task.instanceId ? `\nInstanceId: ${task.instanceId}` : ""}\nParameters: ${JSON.stringify(task.params)}`,
     timestamp: Date.now(),
   };
 
