@@ -95,7 +95,7 @@
         "cd agent/frontend && npx tsc --noEmit passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Use LangFuse API: GET /api/public/traces/{traceId} with Basic auth (publicKey:secretKey). The traceId is stored in the Task record after orchestrator processes it. agent-browser needs to login to LangFuse first (use admin credentials from docker-compose)."
     }
   ]

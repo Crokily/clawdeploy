@@ -49,3 +49,13 @@
   - Direct URL navigation: /project/{projectId}/traces
   - Trace detail tree shows generation→span parent-child relationships
 ---
+## 2026-02-22 - US-005: E2E Test — Full Observability Pipeline
+- Created agent/scripts/e2e-langfuse-test.sh (executable)
+- Test flow: check prereqs → create task → poll completion → query LangFuse API → screenshot
+- Test result: PASS — 5 observations (GENERATION + SPAN) found in LangFuse trace
+- Fixed agent-browser invocation (no --session flag, no wait command)
+- **Learnings:**
+  - agent-browser doesn't support --session or wait commands
+  - LangFuse API returns observations nested in trace response
+  - Task may report "failed" due to instance already running, but trace is still captured correctly
+---
