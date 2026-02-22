@@ -75,7 +75,7 @@
         "agent-browser screenshot of a trace detail page saved as /tmp/langfuse-trace-detail.png"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "If wildcard SSL cert covers *.claw.a2a.ing, add langfuse.claw.a2a.ing. Otherwise just use localhost:3500 with LangFuse's built-in auth. Take screenshots with agent-browser after login."
     },
     {

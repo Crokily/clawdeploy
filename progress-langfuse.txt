@@ -37,3 +37,15 @@
   - API endpoint: GET /api/public/traces with Basic auth (publicKey:secretKey)
   - Observations include type (GENERATION/SPAN), model, usage
 ---
+## 2026-02-22 - US-004: Nginx Reverse Proxy & Dashboard Access
+- LangFuse Dashboard accessible at http://localhost:3500
+- Login with admin@pideploy.local / pideploy-admin-2026
+- LANGFUSE_INIT_* vars created user+org+project on v2 (signup page confirmed "user exists")
+- Dashboard shows: 3 traces, 5.72K tokens, minimax-m2.5-free model
+- Trace detail: Tree view with GENERATION + SPAN nodes, token usage per step, ERROR tagging
+- Screenshots: /tmp/langfuse-dashboard.png, /tmp/langfuse-trace-detail.png
+- **Learnings:**
+  - LangFuse v2 INIT vars DO create user/project but NextAuth login via agent-browser needs Enter key
+  - Direct URL navigation: /project/{projectId}/traces
+  - Trace detail tree shows generation→span parent-child relationships
+---
